@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE CITY HAS SECRETS — Horror Mystery</title>
+<style>
+:root{--red:#d52c3b;--panel:rgba(8,11,16,.88);--line:rgba(255,255,255,.16);--text:#f2f4f7}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070b;color:var(--text);font-family:Arial,Helvetica,sans-serif}
+#game{position:fixed;inset:0}canvas{display:block}
+#vignette{pointer-events:none;position:fixed;inset:0;background:radial-gradient(ellipse at center,transparent 32%,rgba(0,0,0,.72) 100%);z-index:2}
+#hud{position:fixed;inset:0;z-index:4;pointer-events:none}
+.panel{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(10px);box-shadow:0 8px 32px #0008}
+#mission{position:absolute;top:18px;left:18px;padding:14px 16px;max-width:min(360px,calc(100vw - 36px));border-left:3px solid var(--red)}
+.kicker{font-size:10px;letter-spacing:2.5px;color:#e66a74;text-transform:uppercase}
+h1,h2,p{margin:0}#mission h2{font-size:16px;letter-spacing:1px;margin:7px 0}#objective{font-size:13px;line-height:1.45;color:#d5d8de}
+#mapbox{position:absolute;right:18px;top:18px;width:220px;padding:10px}
+#maptitle{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:1.8px;margin:0 0 8px}
+#map{width:100%;height:auto;display:block;background:#111820;border:1px solid #ffffff1c}
+.mapkey{display:flex;gap:9px;flex-wrap:wrap;font-size:10px;color:#c8ccd2;margin-top:8px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+#bottomleft{position:absolute;left:18px;bottom:18px;display:flex;gap:8px;align-items:end}
+.stat{padding:10px 12px;min-width:110px}.stat small{display:block;font-size:9px;letter-spacing:1.4px;color:#aeb5c0;margin-bottom:7px}.bar{height:4px;background:#363a40;width:100%}.bar span{display:block;height:100%;background:#d7c66a;width:100%;transition:width .2s}
+#prompt{position:absolute;bottom:25%;left:50%;transform:translateX(-50%);padding:10px 14px;font-size:13px;background:#07090ddd;border:1px solid #ffffff30;display:none;white-space:nowrap}
+#crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border:1px solid #ffffffaa;border-radius:50%;transform:translate(-50%,-50%)}
+#toast{position:absolute;top:30%;left:50%;transform:translateX(-50%);max-width:85vw;text-align:center;padding:14px 18px;font-size:14px;letter-spacing:.4px;display:none}
+#phone{position:absolute;right:18px;bottom:18px;padding:10px 13px;font-size:11px;letter-spacing:1px}
+#menu,#pause,#journal{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#030508f2,#06090bd9),radial-gradient(ellipse at 70% 50%,#29323c,#030508);padding:20px}
+.menuinner{width:min(560px,100%);padding:30px;border:1px solid #ffffff20;background:#06090bd9;box-shadow:0 20px 80px #000}
+.title{font-size:clamp(30px,6vw,54px);font-weight:900;letter-spacing:2px;line-height:.98}.title span{color:var(--red)}.subtitle{margin:14px 0 26px;color:#aab2bc;font-size:13px;line-height:1.6;max-width:430px}
+button{font:inherit;cursor:pointer;color:var(--text);background:#151a21;border:1px solid #ffffff30;padding:12px 15px;transition:.18s}
+button:hover{border-color:var(--red);background:#281116}button.primary{background:var(--red);border-color:var(--red);font-weight:bold}button.primary:hover{background:#aa1f2c}
+.menubtns{display:grid;grid-template-columns:1fr 1fr;gap:9px}.menubtns button:first-child{grid-column:1/-1}
+#settings{display:none;margin-top:18px;padding-top:15px;border-top:1px solid var(--line);font-size:12px;color:#d3d6dc}label{display:flex;justify-content:space-between;align-items:center;margin:10px 0;gap:15px}
+#journal{display:none;background:#030508eF}.journalinner{width:min(650px,100%);max-height:85vh;overflow:auto;padding:24px;background:#080b10;border:1px solid #ffffff2b}.journalinner h2{margin:8px 0 16px}.clue{padding:12px;border:1px solid #ffffff18;margin:8px 0;font-size:13px;color:#cbd0d8;line-height:1.5}
+#maplarge{display:none;position:fixed;inset:0;z-index:8;background:#020406ed;align-items:center;justify-content:center;padding:18px}
+.maplargeinner{width:min(760px,100%);padding:20px;background:#080b10;border:1px solid #ffffff28}.maplargeinner canvas{width:100%;max-height:65vh;object-fit:contain}
+#mobile{display:none;position:fixed;z-index:6;bottom:90px;right:18px;gap:8px;pointer-events:auto}#mobile button{border-radius:50%;width:55px;height:55px;background:#080b10bb}
+#controlshelp{font-size:11px;color:#939ba7;line-height:1.8;margin-top:20px}
+.hidden{display:none!important}
+@media(max-width:650px){#mapbox{width:150px;right:10px;top:10px}#mission{left:10px;top:10px;max-width:calc(100vw - 180px);padding:10px}#mission h2{font-size:12px}#objective{font-size:11px}#bottomleft{left:10px;bottom:10px}.stat{min-width:82px;padding:8px}.stat small{font-size:8px}#phone{right:10px;bottom:10px}#mobile{display:flex;flex-direction:column}.menubtns{grid-template-columns:1fr}.menubtns button:first-child{grid-column:auto}.menuinner{padding:22px}}
+</style>
+</head>
+<body>
+<div id="game"></div><div id="vignette"></div>
+<div id="hud" class="hidden">
+  <div id="mission" class="panel"><div class="kicker">Case file 001 · Missing</div><h2 id="missiontitle">FIND THE LAST MESSAGE</h2><div id="objective">Reach the apartment block and investigate the ringing phone.</div></div>
+  <div id="mapbox" class="panel"><div id="maptitle"><span>FIELD MAP</span><span id="mapstatus">● LIVE</span></div><canvas id="map" width="240" height="210"></canvas><div class="mapkey"><span><i class="dot" style="background:#f5e65c"></i>You</span><span><i class="dot" style="background:#e34b59"></i>Objective</span><span><i class="dot" style="background:#6bc7d7"></i>Clue</span></div></div>
+  <div id="crosshair"></div><div id="prompt"></div><div id="toast" class="panel"></div>
+  <div id="bottomleft"><div class="stat panel"><small>FLASHLIGHT BATTERY</small><div class="bar"><span id="batterybar"></span></div></div><div class="stat panel"><small>COLLECTED CLUES</small><strong id="cluecount">0 / 5</strong></div></div>
+  <button id="phone" class="panel" onclick="openJournal()">[ J ] JOURNAL / MAP</button>
+  <div id="mobile"><button id="forward">▲</button><button id="left">◀</button><button id="right">▶</button><button id="interactMobile">E</button></div>
+</div>
+<div id="menu"><div class="menuinner">
+  <div class="kicker">A psychological horror mystery</div><div class="title">THE CITY<br>HAS <span>SECRETS</span></div>
+  <p class="subtitle">A normal city. A missing person. A message sent at 11:59 PM. Explore the streets, follow the map, collect evidence, and don't trust every shadow you see.</p>
+  <div class="menubtns"><button class="primary" id="newgame">NEW GAME</button><button id="continue">CONTINUE</button><button id="openSettings">SETTINGS</button><button id="showControls">CONTROLS</button></div>
+  <div id="settings"><label>Master volume <input id="volume" type="range" min="0" max="1" step=".05" value=".45"></label><label>Reduce sudden scares <input id="reduced" type="checkbox"></label><label>Graphics <select id="quality"><option value="high">Balanced</option><option value="low">Performance</option></select></label></div>
+  <div id="controlshelp" class="hidden">WASD — move · Mouse — look around · Shift — run · C — crouch · E — investigate / collect · F — flashlight · J — journal and full map · Esc — pause. Click the game to capture the mouse. On mobile, use the on-screen controls.</div>
+</div></div>
+<div id="pause" class="hidden"><div class="menuinner"><div class="kicker">Signal interrupted</div><div class="title">PAUSED<span>.</span></div><p class="subtitle">The city hasn't stopped listening.</p><div class="menubtns"><button class="primary" id="resume">RESUME</button><button id="pauseJournal">JOURNAL / MAP</button><button id="returnMenu">RETURN TO TITLE</button></div></div></div>
+<div id="journal"><div class="journalinner"><div class="kicker">Evidence archive</div><h2>FIELD JOURNAL & CITY MAP</h2><canvas id="mapFull" width="700" height="460"></canvas><p id="journaltext" style="font-size:13px;line-height:1.7;color:#c6cbd2;margin:14px 0">No evidence collected yet. Follow the red marker on your field map.</p><div id="clues"></div><button id="closeJournal" class="primary" style="margin-top:12px">CLOSE JOURNAL [J]</button></div></div>
+<div id="maplarge"><div class="maplargeinner"><h2>FIELD MAP</h2><canvas id="mapBig" width="700" height="460"></canvas><button id="closeBigMap">CLOSE</button></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const $=id=>document.getElementById(id);
+let scene,camera,renderer,clock,player,keys={},yaw=0,pitch=0,locked=false,running=false,paused=false,crouching=false;
+let battery=100,cluesFound=new Set(),interactables=[],buildings=[],lights=[],soundCtx,masterGain,ambientOsc,scareTimer=0,stepTimer=0,toastTimer=0,gameTime=0;
+const WORLD=180, playerRadius=.45;
+const objectives=[
+ {id:'phone',name:'Ringing Phone',x:0,z:-18,desc:'Investigate the ringing phone in the abandoned apartment lobby.',text:'A cracked phone vibrates on the reception desk. The last message is from a number that does not exist.',type:'clue'},
+ {id:'photo',name:'Missing Person Photo',x:25,z:-40,desc:'Find the photograph near the closed metro entrance.',text:'The same silhouette appears in the background of every missing-person photograph. It is standing closer in this one.',type:'clue'},
+ {id:'key',name:'Basement Key',x:-28,z:-45,desc:'Search the service alley behind the hospital for a key.',text:'A rusted key is tagged SUBLEVEL B. Someone scratched “DO NOT FOLLOW THE VOICE” into the metal.',type:'clue'},
+ {id:'recording',name:'Voice Recording',x:34,z:18,desc:'Find the recorder inside the shuttered café.',text:'The recording contains your own voice, whispering from tomorrow: “You found the door.”',type:'clue'},
+ {id:'door',name:'Underground Entrance',x:-4,z:52,desc:'Use the clues to locate the underground facility entrance.',text:'The hidden door unlocks. Beneath the city, an elevator is already waiting with its doors open.',type:'ending'}
+];
+const clueData={phone:'Last phone message',photo:'Missing person photograph',key:'SUBLEVEL B key',recording:'Unknown voice recording',door:'Underground facility discovered'};
+function init(){
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x080d14);scene.fog=new THREE.FogExp2(0x080d14,.012);
+ camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.08,260);camera.position.set(0,1.7,12);
+ renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;$('game').appendChild(renderer.domElement);
+ clock=new THREE.Clock();
+ const hemi=new THREE.HemisphereLight(0x9ab0c9,0x151318,1.15);scene.add(hemi);
+ const moon=new THREE.DirectionalLight(0x9db9e8,1.25);moon.position.set(-25,40,10);moon.castShadow=true;moon.shadow.mapSize.set(1024,1024);scene.add(moon);
+ makeCity();makePlayer();bind();drawMaps();animate();
+}
+function mat(color,rough=.8,metal=0){return new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal})}
+function box(w,h,d,material,x,y,z,cast=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=true;scene.add(m);return m}
+function makeCity(){
+ const ground=box(WORLD,.5,WORLD,mat(0x252a2e),0,-.35,0,false);
+ // Main roads, sidewalks, lane markings
+ box(18,.04,WORLD,mat(0x111519),0,-.07,0,false);box(WORLD,.04,18,mat(0x111519),0,-.06,0,false);
+ for(let i=-80;i<=80;i+=10){box(.12,.025,1.7,mat(0x9b9a88),0,.0,i,false);box(1.7,.025,.12,mat(0x9b9a88),i,.0,0,false)}
+ const sidewalk=mat(0x4a4b49), concrete=mat(0x454a4e), glass=mat(0x1d303b,.24,.45), litglass=mat(0x6e7f86,.28,.3), dark=mat(0x0d1419,.4,.2);
+ for(let x=-70;x<=70;x+=20)for(let z=-70;z<=70;z+=20){
+   if(Math.abs(x)<18||Math.abs(z)<18)continue;
+   const w=8+Math.random()*7,d=8+Math.random()*7,h=8+Math.random()*32;
+   const b=box(w,h,d,concrete,x,h/2,z);buildings.push({x,z,w,d,h});
+   box(w+.2,.18,d+.2,mat(0x252a2e),x,h+.08,z,false);
+   for(let yy=2;yy<h-1;yy+=2.5)for(let xx=-w/2+1;xx<w/2-1;xx+=2.1){
+    if(Math.random()>.48){const win=box(.95,1.25,.06,Math.random()>.65?litglass:glass,x+xx,yy,z+d/2+.04,false);win.material=win.material.clone();if(Math.random()>.85)win.material.emissive=new THREE.Color(0x314b56);win.material.emissiveIntensity=.5;}
+   }
+   for(let yy=2;yy<h-1;yy+=2.5)for(let zz=-d/2+1;zz<d/2-1;zz+=2.2){if(Math.random()>.5)box(.06,1.1,.9,glass,x+w/2+.04,yy,z+zz,false)}
+ }
+ // sidewalks along road
+ box(2,.25,WORLD,sidewalk,10,-.01,0,false);box(2,.25,WORLD,sidewalk,-10,-.01,0,false);box(WORLD,.25,2,sidewalk,0,-.01,10,false);box(WORLD,.25,2,sidewalk,0,-.01,-10,false);
+ // Street lamps
+ for(const [x,z] of [[-9,-28],[9,-35],[-9,35],[9,52],[-45,-10],[45,10],[20,-10],[-20,10]]){
+   box(.12,5,.12,mat(0x292e32),x,2.5,z);box(.8,.15,.25,mat(0x292e32),x+.3,4.9,z);
+   const l=new THREE.PointLight(0xffd8a0,7,17,2);l.position.set(x+.3,4.6,z);scene.add(l);lights.push(l);
+ }
+ // A recognizable metro entrance and hospital
+ const metro=box(10,3,5,mat(0x343b41),25,1.5,-40);box(7,.15,3.8,mat(0x101820),25,2.8,-40);
+ for(let i=0;i<4;i++)box(.1,2,.1,mat(0x818a8e),22+i*2,1,-38);
+ const hosp=box(13,13,11,mat(0x53575a),-28,6.5,-45);box(4,1,.25,mat(0x9a3038),-28,11,-39.3);box(.6,3,.3,mat(0xe2e3e4),-28,11,-39.1);box(2.5,.6,.3,mat(0xe2e3e4),-28,11,-39.1);
+ const cafe=box(10,5,8,mat(0x342b28),34,2.5,18);box(8,2,.12,mat(0x171b1d),34,3.3,13.9);box(6,.18,.15,mat(0x6c3032),34,4.3,13.8);
+ // Parked cars
+ for(const [x,z,c] of [[-5,-24,0x171c22],[5,28,0x343d4b],[45,-5,0x3b2025],[-45,20,0x202c31],[12,45,0x141414]]){
+   const car=box(2.3,.8,4,mat(c,.3,.6),x,.65,z);box(1.7,.65,1.8,glass,x,1.25,z-.15);
+   for(const dx of [-1.1,1.1])for(const dz of [-1.25,1.25]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.18,12),mat(0x08090a));wheel.rotation.z=Math.PI/2;wheel.position.set(x+dx,.36,z+dz);scene.add(wheel)}
+ }
+ // Hidden facility hatch
+ box(5,.15,4,mat(0x101316,.3,.65),-4,.02,52);box(1.8,.12,.12,mat(0x8c9699,.2,.7),-4,.12,51.2);
+ // Atmospheric distant silhouette
+ const figure=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.32,1.1,4,8),mat(0x030406));body.position.y=1.2;figure.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.28,12,10),mat(0x020203));head.position.y=2;figure.add(head);figure.position.set(1,0,-39);scene.add(figure);figure.userData.isGhost=true;figure.userData.baseZ=-39;scene.userData.ghost=figure;
+ // Simple apartment lobby structure near phone objective
+ box(8,5,7,mat(0x252b30),0,2.5,-18);box(2.1,3,.16,mat(0x11171a),0,1.5,-14.45);box(1.9,2.8,.08,mat(0x374149),0,1.5,-14.35);
+ // props clues
+ makeClue('phone',0,1,-15.7,0x9e3037);
+ makeClue('photo',25,1,-35,0xddd6bf);
+ makeClue('key',-28,1,-39,0xb5a06b);
+ makeClue('recording',34,1,14,0x2e8e9a);
+ makeClue('door',-4,.25,52,0x9a3038);
+ // little interior props in café
+ for(const [x,z] of [[31,17],[36,17],[31,20],[36,20]]){box(1.2,.12,1.2,mat(0x574238),x,.9,z);box(.12,.9,.12,mat(0x24201e),x,.45,z)}
+}
+function makeClue(id,x,y,z,color){const obj=new THREE.Group();const orb=new THREE.Mesh(new THREE.OctahedronGeometry(.28),new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.8}));orb.position.y=.55;obj.add(orb);const ring=new THREE.Mesh(new THREE.TorusGeometry(.42,.035,6,18),new THREE.MeshBasicMaterial({color}));ring.rotation.x=Math.PI/2;ring.position.y=.12;obj.add(ring);obj.position.set(x,y,z);scene.add(obj);obj.userData={id,baseY:y,orb};interactables.push(obj)}
+function makePlayer(){player=new THREE.Object3D();player.position.set(0,0,12);scene.add(player);camera.position.set(0,1.65,0);player.add(camera);camera.rotation.order='YXZ';
+ const flashlight=new THREE.SpotLight(0xe2edff,35,30,Math.PI/7,.45,1.5);flashlight.position.set(0,-.08,0);flashlight.target.position.set(0,0,-1);camera.add(flashlight);camera.add(flashlight.target);player.userData.flashlight=flashlight;
+ const ambient=new THREE.PointLight(0x20314a,.7,18);ambient.position.set(0,1,0);camera.add(ambient);
+}
+function bind(){
+ $('newgame').onclick=()=>startGame(true);$('continue').onclick=()=>startGame(false);
+ $('openSettings').onclick=()=>{$('settings').style.display=$('settings').style.display==='block'?'none':'block'};
+ $('showControls').onclick=()=> $('controlshelp').classList.toggle('hidden');
+ $('resume').onclick=resumeGame;$('returnMenu').onclick=()=>{paused=false;running=false;document.exitPointerLock?.();$('pause').classList.add('hidden');$('hud').classList.add('hidden');$('menu').classList.remove('hidden')};
+ $('pauseJournal').onclick=openJournal;$('closeJournal').onclick=closeJournal;$('closeBigMap').onclick=()=>$('maplarge').style.display='none';
+ $('volume').oninput=e=>{if(masterGain)masterGain.gain.value=+e.target.value};$('quality').onchange=e=>{renderer.setPixelRatio(e.target.value==='low'?Math.min(devicePixelRatio,1):Math.min(devicePixelRatio,1.6));renderer.shadowMap.enabled=e.target.value!=='low'};
+ document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&running&&!paused)pauseGame();if(e.code==='KeyE')interact();if(e.code==='KeyF')toggleFlashlight();if(e.code==='KeyJ'&&running)openJournal();if(e.code==='KeyC')crouching=true});
+ document.addEventListener('keyup',e=>{keys[e.code]=false;if(e.code==='KeyC')crouching=false});
+ document.addEventListener('mousemove',e=>{if(!locked||paused)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.45,Math.min(1.45,pitch));player.rotation.y=yaw;camera.rotation.x=pitch});
+ renderer.domElement.addEventListener('click',()=>{if(running&&!paused)renderer.domElement.requestPointerLock?.()});
+ document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
+ $('forward').onpointerdown=()=>keys.KeyW=true;$('forward').onpointerup=()=>keys.KeyW=false;$('left').onpointerdown=()=>keys.KeyA=true;$('left').onpointerup=()=>keys.KeyA=false;$('right').onpointerdown=()=>keys.KeyD=true;$('right').onpointerup=()=>keys.KeyD=false;$('interactMobile').onclick=interact;
+}
+function startGame(fresh){
+ if(fresh){player.position.set(0,0,12);yaw=0;pitch=0;battery=100;cluesFound.clear();objectives.forEach(o=>{const obj=interactables.find(i=>i.userData.id===o.id);if(obj)obj.visible=true})}
+ running=true;paused=false;$('menu').classList.add('hidden');$('pause').classList.add('hidden');$('hud').classList.remove('hidden');updateObjective();initAudio();renderer.domElement.requestPointerLock?.();toast('You have one new message. “Find the building that has no number.”',5000);drawMaps();
+}
+function pauseGame(){paused=true;document.exitPointerLock?.();$('pause').classList.remove('hidden')}
+function resumeGame(){paused=false;$('pause').classList.add('hidden');renderer.domElement.requestPointerLock?.()}
+function toggleFlashlight(){const f=player.userData.flashlight;if(battery>0)f.visible=!f.visible}
+function initAudio(){try{if(!soundCtx){soundCtx=new(window.AudioContext||window.webkitAudioContext)();masterGain=soundCtx.createGain();masterGain.gain.value=+$('volume').value;masterGain.connect(soundCtx.destination);ambientOsc=soundCtx.createOscillator();const g=soundCtx.createGain();ambientOsc.type='sine';ambientOsc.frequency.value=48;g.gain.value=.025;ambientOsc.connect(g);g.connect(masterGain);ambientOsc.start()}soundCtx.resume()}catch(e){}}
+function tone(freq=90,duration=.7,vol=.08,type='sine'){if(!soundCtx)return;const o=soundCtx.createOscillator(),g=soundCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,soundCtx.currentTime);o.frequency.exponentialRampToValueAtTime(Math.max(20,freq*.55),soundCtx.currentTime+duration);g.gain.setValueAtTime(vol,soundCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,soundCtx.currentTime+duration);o.connect(g);g.connect(masterGain);o.start();o.stop(soundCtx.currentTime+duration)}
+function whisper(){const reduced=$('reduced').checked;if(reduced)return;tone(165,1.8,.055,'triangle');setTimeout(()=>tone(72,1.2,.035,'sawtooth'),280);toast('“Don’t turn around.”',2300)}
+function toast(msg,ms=2800){$('toast').textContent=msg;$('toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.display='none',ms)}
+function nearestInteractable(){let best=null,dist=3.2;for(const obj of interactables){if(!obj.visible)continue;const d=player.position.distanceTo(obj.position);if(d<dist){dist=d;best=obj}}return best}
+function interact(){if(!running||paused)return;const obj=nearestInteractable();if(!obj){toast('Nothing close enough to investigate.');return}const id=obj.userData.id;if(cluesFound.has(id)){toast('You already documented this evidence.');return}
+ if(id==='door'&&cluesFound.size<4){toast('The hatch is locked. You need more evidence from the city.');return}
+ cluesFound.add(id);obj.visible=false;tone(430,.25,.045,'sine');$('cluecount').textContent=`${cluesFound.size} / 5`;
+ const o=objectives.find(o=>o.id===id);toast(o.text,5200);addJournal(clueData[id],o.text);updateObjective();drawMaps();
+ if(id==='door'){setTimeout(()=>{toast('CHAPTER 1 COMPLETE — The elevator descends below the city. Your story is only beginning.',6500);$('missiontitle').textContent='CHAPTER 1 COMPLETE';$('objective').textContent='You found the underground facility. More chapters can be added next.'},1800)}
+ if(cluesFound.size===2)whisper();
+}
+function updateObjective(){const next=objectives.find(o=>!cluesFound.has(o.id));if(next){$('missiontitle').textContent=next.id==='door'?'THE WAY BELOW':'INVESTIGATION IN PROGRESS';$('objective').textContent=next.desc}else{$('missiontitle').textContent='CHAPTER 1 COMPLETE';$('objective').textContent='All current evidence discovered. The city is not finished with you.'}}
+function addJournal(title,body){const el=document.createElement('div');el.className='clue';el.innerHTML='<strong>'+title+'</strong><br>'+body;$('clues').prepend(el);$('journaltext').textContent='Evidence collected: '+cluesFound.size+' of 5. The red marker indicates your next objective.'}
+function openJournal(){if(!running)return;$('journal').style.display='flex';drawMaps();if(!paused){paused=true;document.exitPointerLock?.()}}
+function closeJournal(){$('journal').style.display='none';if(running&&paused&&$('pause').classList.contains('hidden')){paused=false;renderer.domElement.requestPointerLock?.()}}
+function move(dt){
+ const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw)),right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)),dir=new THREE.Vector3();
+ if(keys.KeyW||keys.ArrowUp)dir.add(forward);if(keys.KeyS||keys.ArrowDown)dir.sub(forward);if(keys.KeyD||keys.ArrowRight)dir.add(right);if(keys.KeyA||keys.ArrowLeft)dir.sub(right);
+ if(dir.lengthSq()){dir.normalize();const speed=(keys.ShiftLeft||keys.ShiftRight?8:4.1)*(crouching?.48:1);const nx=player.position.x+dir.x*speed*dt,nz=player.position.z+dir.z*speed*dt;
+  if(Math.abs(nx)<WORLD/2-2&&!blocked(nx,player.position.z))player.position.x=nx;if(Math.abs(nz)<WORLD/2-2&&!blocked(player.position.x,nz))player.position.z=nz;
+  camera.position.y=THREE.MathUtils.lerp(camera.position.y,crouching?1.05:1.65,.12);camera.position.x=Math.sin(gameTime*10)*.018*(speed/4);stepTimer-=dt;if(stepTimer<=0){tone(65,.09,.009,'triangle');stepTimer=keys.ShiftLeft?.28:.48}
+ }
+}
+function blocked(x,z){for(const b of buildings){if(Math.abs(x-b.x)<b.w/2+.6&&Math.abs(z-b.z)<b.d/2+.6)return true}return false}
+function drawOneMap(canvas){
+ const ctx=canvas.getContext('2d'),w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#111820';ctx.fillRect(0,0,w,h);
+ const scale=Math.min(w,h)/WORLD,px=x=>w/2+x*scale,pz=z=>h/2+z*scale;
+ ctx.strokeStyle='#414a52';ctx.lineWidth=Math.max(5,18*scale);ctx.beginPath();ctx.moveTo(px(0),0);ctx.lineTo(px(0),h);ctx.moveTo(0,pz(0));ctx.lineTo(w,pz(0));ctx.stroke();
+ ctx.strokeStyle='#a6a9a0';ctx.lineWidth=1;ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(px(0),0);ctx.lineTo(px(0),h);ctx.moveTo(0,pz(0));ctx.lineTo(w,pz(0));ctx.stroke();ctx.setLineDash([]);
+ for(const b of buildings){ctx.fillStyle='#303a43';ctx.fillRect(px(b.x-b.w/2),pz(b.z-b.d/2),b.w*scale,b.d*scale)}
+ const locs=[{x:0,z:-18,id:'phone'},{x:25,z:-40,id:'photo'},{x:-28,z:-45,id:'key'},{x:34,z:18,id:'recording'},{x:-4,z:52,id:'door'}];
+ for(const o of locs){if(cluesFound.has(o.id))continue;ctx.fillStyle=o.id==='door'?'#e34b59':'#65c9d9';ctx.beginPath();ctx.arc(px(o.x),pz(o.z),Math.max(3,4*scale),0,Math.PI*2);ctx.fill()}
+ ctx.fillStyle='#f5e65c';ctx.beginPath();ctx.arc(px(player.position.x),pz(player.position.z),Math.max(4,5*scale),0,Math.PI*2);ctx.fill();ctx.strokeStyle='#f5e65c';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px(player.position.x),pz(player.position.z));ctx.lineTo(px(player.position.x-Math.sin(yaw)*7),pz(player.position.z-Math.cos(yaw)*7));ctx.stroke();
+ ctx.fillStyle='#b9c2cb';ctx.font=`${Math.max(8,w*.025)}px Arial`;ctx.fillText('N',w-16,15);
+}
+function drawMaps(){if(!player)return;drawOneMap($('map'));drawOneMap($('mapFull'));drawOneMap($('mapBig'))}
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);if(running&&!paused){gameTime+=dt;move(dt);battery=Math.max(0,battery-dt*(player.userData.flashlight.visible?.28:.035));if(battery<=0)player.userData.flashlight.visible=false;$('batterybar').style.width=battery+'%';const n=nearestInteractable();$('prompt').style.display=n?'block':'none';if(n)$('prompt').textContent='[ E ] INVESTIGATE — '+objectives.find(o=>o.id===n.userData.id).name;
+  scareTimer+=dt;if(scareTimer>24+Math.random()*18){scareTimer=0;const g=scene.userData.ghost;if(g){g.position.z=player.position.z-14;g.position.x=player.position.x+(Math.random()-.5)*8;g.visible=true;setTimeout(()=>{if(g)g.visible=false},1800)}if(Math.random()>.4)whisper();else tone(55,2,.035,'sawtooth')}
+  lights.forEach((l,i)=>{l.intensity=6.5+(Math.random()>.992?Math.random()*-6:0)});
+  if(Math.floor(gameTime)%2===0)drawMaps();
+ }
+ renderer.render(scene,camera)}
+window.addEventListener('resize',()=>{if(!camera||!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);drawMaps()});
+init();
+</script>
+</body>
+</html>
